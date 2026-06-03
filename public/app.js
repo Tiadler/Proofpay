@@ -304,7 +304,7 @@ function renderWallet() {
       <strong>No wallet connected</strong>
       <span>Connect MetaMask or Phantom to simulate ${walletTokenSymbol()} payments</span>
     `;
-    $('#createWalletBanner').textContent = `Connect a wallet to use its address as payer and simulate ${walletTokenSymbol()} funding.`;
+    $('#createWalletBanner').textContent = `Connect a wallet before deploying. Deploy locks ${walletTokenSymbol()} from the payer balance immediately.`;
     $('#walletPanel').innerHTML = `
       <div>
         This environment does not call a real MetaMask or Phantom extension yet. It simulates wallet identity and ${walletTokenSymbol()} balance so you can design the payout flow before Rialo wallet integration is finalized.
@@ -336,7 +336,7 @@ function renderWallet() {
     <strong>${wallet.label} | ${shortHash(wallet.address, 6)}</strong>
     <span>${balance} ${walletTokenSymbol()} available | Faucet claims ${claims}</span>
   `;
-  $('#createWalletBanner').textContent = `${wallet.label} connected. Payer defaults to ${shortHash(wallet.address, 8)} and token defaults to ${walletTokenSymbol()}.`;
+  $('#createWalletBanner').textContent = `${wallet.label} connected. Deploy will lock ${walletTokenSymbol()} from ${shortHash(wallet.address, 8)} immediately.`;
   $('#walletPanel').innerHTML = `
     <div>
       Wallet session is simulated in-browser. Use it to test payer identity, displayed ${walletTokenSymbol()} balance, and payment intent before real Rialo wallet support is wired in.
@@ -698,6 +698,14 @@ function canRefund(deal) {
   return deal.status !== 'RELEASED' && deal.status !== 'REFUNDED';
 }
 
+function dealAmount(deal) {
+  const amount = Number(deal?.amount || 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Amount must be greater than 0');
+  }
+  return amount;
+}
+
 function conditionLabel(deal) {
   const payload = deal.conditionPayload || {};
   const repo = [payload.owner, payload.repo].filter(Boolean).join('/');
@@ -878,8 +886,9 @@ async function runAction(action, dealId = state.selectedDeal?.id) {
     }
 
     const deal = state.deals.find((item) => item.id === dealId) || state.selectedDeal;
-    if (action === 'fund') enforceFundSimulation(deal);
+    if (action === 'fund') validateFundSimulation(deal);
     await api(paths[action], { method: 'POST', body: {} });
+    if (action === 'fund') applyFundSimulation(deal);
     if (action === 'release') applyReleaseSimulation(deal);
     if (action === 'refund') applyRefundSimulation(deal);
     toast(`${action} completed for ${shortHash(dealId, 8)}`);
@@ -1003,18 +1012,25 @@ function applyGithubOauthResult() {
   }
 }
 
-function enforceFundSimulation(deal) {
+function validateFundSimulation(deal) {
   if (!deal) throw new Error('Deal not found');
   if (!state.wallet) throw new Error('Connect a wallet before funding a deal');
   if (deal.payerAddress !== state.wallet.address) {
     throw new Error('Connected wallet must match payer address to fund this deal');
   }
 
-  const amount = Number(deal.amount || 0);
+  const amount = dealAmount(deal);
   const balance = currentLedgerBalance(state.wallet.address);
   const existing = escrowRecord(deal.id);
   if (existing?.funded) return;
   if (balance < amount) throw new Error(`Insufficient ${walletTokenSymbol()} balance. Use Faucet first.`);
+}
+
+function applyFundSimulation(deal) {
+  if (!state.wallet) return;
+  const amount = dealAmount(deal);
+  const existing = escrowRecord(deal.id);
+  if (existing?.funded) return;
 
   updateLedgerBalance(state.wallet.address, -amount);
   setEscrowRecord(deal.id, {
@@ -1144,8 +1160,20 @@ function bindEvents() {
     };
 
     try {
+      if (!state.wallet) throw new Error(`Connect a wallet before deploying an escrow workflow`);
+      if (payload.payerAddress !== state.wallet.address) {
+        throw new Error('Payer address must match the connected wallet');
+      }
+      const amount = dealAmount(payload);
+      const balance = currentLedgerBalance(state.wallet.address);
+      if (balance < amount) {
+        throw new Error(`Insufficient ${walletTokenSymbol()} balance. Amount ${amount} exceeds wallet balance ${balance.toFixed(2)}.`);
+      }
+
       const deal = await api('/api/deals', { method: 'POST', body: payload });
-      toast(`Escrow created: ${shortHash(deal.id, 8)}`);
+      await api(`/api/deals/${deal.id}/fund`, { method: 'POST', body: {} });
+      applyFundSimulation(deal);
+      toast(`Escrow deployed and funded: ${shortHash(deal.id, 8)}`);
       state.selectedDeal = await api(`/api/deals/${deal.id}`);
       navigateTo('escrows');
     } catch (err) {

@@ -136,14 +136,15 @@ Muc dich:
 
 - Xem deal nao da tao.
 - Chon deal de thao tac.
-- Fund deal bang RIALO simulated.
+- Xem deal da duoc auto-fund khi deploy.
 - Verify GitHub proof.
 - Release hoac refund.
 
 Luu y:
 
-- `Fund` chi thanh cong neu wallet connected trung voi payer address cua deal.
-- `Fund` se tru RIALO balance cua payer trong session ledger.
+- `Deploy Escrow Workflow` chi thanh cong neu wallet connected trung voi payer address.
+- `Deploy Escrow Workflow` se auto-fund va tru RIALO balance cua payer ngay.
+- `Fund` chi can dung cho deal cu con o status `DRAFT`.
 - `Release` se cong RIALO cho payee address.
 - `Refund` se hoan RIALO ve payer address.
 
@@ -175,6 +176,7 @@ Muc dich:
 - Tao dieu kien thanh toan.
 - Luu condition payload.
 - Tao mock Rialo escrow account.
+- Auto-fund escrow neu amount khong vuot qua RIALO balance cua wallet.
 
 Vi du:
 
@@ -190,7 +192,7 @@ Pull Request: 1
 Deadline: 7 ngay toi
 ```
 
-Sau khi tao xong, app tu chuyen sang page `Escrows`.
+Sau khi deploy xong, app tu fund deal, tru balance payer, va chuyen sang page `Escrows`.
 
 ### 3.4 Proofs
 
@@ -377,14 +379,16 @@ Ket qua mong doi:
 - `Payer Address` tu dien bang wallet address.
 - `Token` mac dinh la `RIALO`.
 
-7. Tao deal voi amount nho hon balance hien co.
+7. Bam `Deploy Escrow Workflow` voi amount nho hon hoac bang balance hien co.
 
 Ket qua mong doi:
 
-- Deal duoc tao.
+- Neu amount lon hon balance, app bao loi insufficient balance va khong tao deal.
+- Neu amount hop le, deal duoc tao va auto-funded.
+- RIALO balance cua payer giam di dung amount.
 - App tu chuyen sang page `Escrows`.
 
-### Flow B: Fund escrow va refund
+### Flow B: Refund escrow da funded
 
 1. Vao:
 
@@ -394,12 +398,10 @@ http://localhost:3000/#/escrows
 
 2. Chon deal vua tao.
 
-3. Bam `Fund`.
+3. Xac nhan deal dang status `FUNDED`.
 
 Ket qua mong doi:
 
-- Deal status chuyen `DRAFT -> FUNDED`.
-- RIALO balance cua payer giam di dung amount.
 - Detail co funding tx mock.
 - Audit log co `wallet.fund`.
 
@@ -425,15 +427,15 @@ Flow nay dung de test truong hop:
 Client khoa tien nhung proof khong dat -> refund lai client.
 ```
 
-### Flow C: Fund escrow, verify GitHub, release
+### Flow C: Deploy escrow, verify GitHub, release
 
 Flow nay can GitHub PR hop le.
 
-1. Tao deal voi repo public va PR da merge.
+1. Deploy deal voi repo public va PR da merge.
 
 Vi du co the thu voi public repo, nhung can chon PR co that va da merged.
 
-2. Fund deal.
+2. Deal se duoc auto-funded neu wallet du RIALO.
 
 3. Bam `Verify`.
 
@@ -644,11 +646,10 @@ Dung script nay de demo nhanh:
 3. Connect Wallet: Tao profile bang wallet.
 4. Faucet: Nhan 100 RIALO.
 5. Profile: Connect GitHub va xem permissions.
-6. Create Deal: Tao GitHub PR escrow.
-7. Escrows: Fund deal.
-8. Proofs: Verify proof.
-9. Escrows/Proofs: Release neu verified, refund neu fail.
-10. Profile: Xem audit log.
+6. Create Deal: Deploy GitHub PR escrow va auto-fund.
+7. Proofs: Verify proof.
+8. Escrows/Proofs: Release neu verified, refund neu fail.
+9. Profile: Xem audit log.
 ```
 
 Thong diep chinh:

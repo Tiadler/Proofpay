@@ -85,10 +85,9 @@ Runs Node built-in tests under `test/`.
 
 1. Connect a simulated wallet from the top bar.
 2. Use Faucet to add 100 RIALO to the browser-session ledger.
-3. Create a GitHub escrow from the Create Deal page.
-4. Fund the escrow from the connected wallet.
-5. Verify a GitHub PR merge proof.
-6. Release funds after proof verification, or refund/dispute when needed.
+3. Deploy a GitHub escrow from the Create Deal page. Deploy requires enough RIALO balance and immediately locks the amount.
+4. Verify a GitHub PR merge proof.
+5. Release funds after proof verification, or refund/dispute when needed.
 7. Review proof hashes, transaction hashes, and event history in the Escrows or Proofs pages.
 
 ## API Routes
@@ -160,6 +159,12 @@ Recommended production integration path:
 ```text
 Node.js API -> Rialo Rust microservice -> rialo-cdk -> Rialo devnet
 ```
+
+## Wallet / On-Chain Path
+
+The current wallet flow is still a browser-session simulator. `Deploy Escrow Workflow` now behaves like a funded escrow intent: it requires the connected wallet, checks available simulated RIALO, creates the deal, funds it, and deducts the amount from the payer balance immediately.
+
+To make this real on-chain, the mock wallet and `MockRialoAdapter` must be replaced with a Rialo-compatible wallet adapter and escrow program/service. Deal ownership should then be keyed by wallet address and transaction state should be read from chain or an indexed durable database, not from browser session storage.
 
 ## Vercel / Serverless Storage
 
