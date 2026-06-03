@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProofPay on Rialo</title>
+  <link rel="icon" type="image/png" href="/static/logo/logo.png" />
+  <link rel="apple-touch-icon" href="/static/logo/logo.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="mobile-shade" id="mobileShade" hidden></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <a class="brand-home" href="#/dashboard" aria-label="ProofPay dashboard">
+        <img class="brand-logo" src="/static/logo/logo.png" alt="ProofPay logo" />
+        <span class="brand-copy">
+          <strong>ProofPay</strong>
+          <span>Rialo Devnet</span>
+        </span>
+      </a>
+      <button class="icon-button sidebar-toggle" id="toggleSidebar" type="button" aria-label="Collapse sidebar" aria-expanded="true">
+        <span class="toggle-chevron" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div class="network-pill">
+      <span class="pulse-dot"></span>
+      <span id="sidebarNetwork">MOCK ADAPTER</span>
+    </div>
+
+    <nav class="nav-list" aria-label="Primary">
+      <a href="#/dashboard" class="nav-link active" data-nav="dashboard"><span class="nav-index">01</span><span class="nav-text">Dashboard</span></a>
+      <a href="#/escrows" class="nav-link" data-nav="escrows"><span class="nav-index">02</span><span class="nav-text">Escrows</span></a>
+      <a href="#/create" class="nav-link" data-nav="create"><span class="nav-index">03</span><span class="nav-text">Create Deal</span></a>
+      <a href="#/proofs" class="nav-link" data-nav="proofs"><span class="nav-index">04</span><span class="nav-text">Proofs</span></a>
+      <a href="#/adapter" class="nav-link" data-nav="adapter"><span class="nav-index">05</span><span class="nav-text">Adapter</span></a>
+      <a href="#/profile" class="nav-link" data-nav="profile"><span class="nav-index">06</span><span class="nav-text">Profile</span></a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="https://rialo.io/for-devs" target="_blank" rel="noreferrer">Rialo for Devs</a>
+      <a href="https://playground.rialo.io/" target="_blank" rel="noreferrer">Playground</a>
+    </div>
+  </aside>
+
+  <div class="app">
+    <header class="topbar">
+      <button class="mobile-brand-button" id="openSidebar" type="button" aria-label="Open sidebar">
+        <img src="/static/logo/logo.png" alt="" aria-hidden="true" />
+        <span>Menu</span>
+      </button>
+      <div>
+        <p class="eyebrow">Proof-based programmable payments</p>
+        <h1 id="pageTitle">ProofPay Console</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="wallet-inline" id="walletInline">
+          <div class="wallet-summary" id="walletSummary">
+            <strong>No wallet connected</strong>
+            <span>Connect MetaMask or Phantom to simulate RIALO payments</span>
+          </div>
+          <div class="wallet-buttons">
+            <button class="button ghost" id="openWalletModal" type="button">Connect Wallet</button>
+            <button class="button ghost" id="faucetButton" type="button" hidden>Faucet +100 RIALO</button>
+            <button class="profile-trigger" id="openProfileMenu" type="button" hidden aria-label="Open profile menu">
+              <span id="profileAvatar">PP</span>
+            </button>
+          </div>
+        </div>
+        <button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Switch to light mode">
+          <svg class="theme-symbol theme-symbol-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+          <svg class="theme-symbol theme-symbol-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"></path>
+          </svg>
+        </button>
+        <a class="button primary" href="#/create">Deploy Escrow</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="page active" id="page-dashboard" data-page="dashboard">
+        <div class="hero">
+          <div class="hero-copy">
+            <div class="badge-row">
+              <span class="live-dot"></span>
+              Rialo Devnet Program
+            </div>
+            <h2>
+              <span class="headline-line">PROOF PAY</span>
+              <span class="accent-text headline-line">AUTOMATES TRUST</span>
+            </h2>
+            <p>
+              Lock funds, verify real-world GitHub proof, and execute conditional payment actions through the ProofPay Rialo adapter.
+            </p>
+            <div class="hero-actions">
+              <a class="button primary glow" href="#/create">Create GitHub Escrow</a>
+              <a class="button ghost" href="#/adapter">Open Adapter Status</a>
+            </div>
+          </div>
+
+          <div class="terminal-panel">
+            <div class="terminal-head">
+              <span></span><span></span><span></span>
+              <strong>Mock Rialo Adapter</strong>
+              <em id="adapterState">loading</em>
+            </div>
+            <div class="terminal-body" id="networkConsole">Loading network status...</div>
+          </div>
+        </div>
+
+        <section class="stats-grid" id="stats"></section>
+        <section class="program-grid" id="programs"></section>
+      </section>
+
+      <section class="page" id="page-escrows" data-page="escrows">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Live state</p>
+            <h2>Escrows</h2>
+          </div>
+          <button class="button ghost" id="reloadDeals" type="button">Reload</button>
+        </div>
+
+        <section class="panel table-panel" id="escrows">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Recent escrows</p>
+              <h2>Conditional Escrow Deals</h2>
+            </div>
+            <div class="table-tools">
+              <select id="statusFilter" aria-label="Filter escrow status">
+                <option value="all">All statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="FUNDED">Funded</option>
+                <option value="AWAITING_PROOF">Awaiting proof</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="RELEASED">Released</option>
+                <option value="REFUNDED">Refunded</option>
+                <option value="DISPUTED">Disputed</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Deal</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Condition</th>
+                  <th>Deadline</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dealsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel details-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Audit trail</p>
+              <h2>Deal Details</h2>
+            </div>
+          </div>
+          <div class="deal-details details-empty">Select an escrow to inspect condition hashes, transaction hashes, proofs, and events.</div>
+        </section>
+      </section>
+
+      <section class="page" id="page-create" data-page="create">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Conditional escrow</p>
+            <h2>Create Deal</h2>
+          </div>
+        </div>
+
+        <form class="panel create-panel" id="dealForm">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Conditional escrow</p>
+              <h2>Create GitHub Escrow</h2>
+            </div>
+            <span class="status-badge active">ACTIVE</span>
+          </div>
+
+          <div class="wallet-banner" id="createWalletBanner">
+            Connect a wallet to use its address as payer and simulate RIALO funding.
+          </div>
+
+          <div class="form-grid">
+            <label>Title <input name="title" value="Fix checkout bug" autocomplete="off" /></label>
+            <label>Amount <input name="amount" value="100" inputmode="decimal" /></label>
+            <label>Token <input name="tokenSymbol" value="MRD" autocomplete="off" /></label>
+            <label>Payer Address <input name="payerAddress" value="rialo_client_demo" autocomplete="off" /></label>
+            <label>Payee Address <input name="payeeAddress" value="rialo_freelancer_demo" autocomplete="off" /></label>
+            <label>Deadline <input name="deadline" type="datetime-local" /></label>
+            <label>GitHub Owner <input name="owner" placeholder="vercel" autocomplete="off" /></label>
+            <label>GitHub Repo <input name="repo" placeholder="next.js" autocomplete="off" /></label>
+            <label>Pull Request <input name="pullNumber" placeholder="1" inputmode="numeric" /></label>
+            <label class="wide">Expected Author <input name="expectedAuthor" placeholder="optional" autocomplete="off" /></label>
+          </div>
+
+          <label>Description
+            <textarea name="description">Payment releases automatically when the GitHub PR is merged before the deadline.</textarea>
+          </label>
+
+          <div class="form-actions">
+            <button class="button primary" type="submit">Deploy Escrow Workflow</button>
+            <button class="button ghost" id="resetForm" type="button">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="page" id="page-proofs" data-page="proofs">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Proof registry</p>
+            <h2>Proofs</h2>
+          </div>
+        </div>
+
+        <section class="panel pipeline-panel" id="proofs">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Selected escrow</p>
+              <h2>Proof Pipeline</h2>
+            </div>
+            <span class="mono" id="selectedDealId">No deal</span>
+          </div>
+          <div class="pipeline" id="pipeline"></div>
+          <div class="selected-actions" id="selectedActions"></div>
+        </section>
+
+        <section class="panel details-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Audit trail</p>
+              <h2>Deal Details</h2>
+            </div>
+          </div>
+          <div class="deal-details details-empty">Select an escrow to inspect condition hashes, transaction hashes, proofs, and events.</div>
+        </section>
+      </section>
+
+      <section class="page" id="page-adapter" data-page="adapter">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Rialo interface</p>
+            <h2>Adapter</h2>
+          </div>
+        </div>
+
+        <section class="panel wallet-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Wallet session</p>
+              <h2>Wallet & RIALO</h2>
+            </div>
+            <span class="status-badge experimental">SIMULATED</span>
+          </div>
+          <div id="walletPanel" class="wallet-panel-body"></div>
+        </section>
+
+        <section class="panel wallet-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Private repo production path</p>
+              <h2>GitHub App Verification</h2>
+            </div>
+            <span class="status-badge preview">PRODUCTION PATH</span>
+          </div>
+          <div id="githubProductionPanel" class="wallet-panel-body"></div>
+        </section>
+
+        <section class="panel adapter-panel" id="adapter">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Rialo interface</p>
+              <h2>Adapter Status</h2>
+            </div>
+            <span class="status-badge active" id="adapterMode">MOCK</span>
+          </div>
+          <div class="adapter-grid" id="adapterCards"></div>
+          <div class="module-list" id="moduleList"></div>
+        </section>
+      </section>
+
+      <section class="page" id="page-profile" data-page="profile">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Wallet-backed account</p>
+            <h2>Profile / Settings</h2>
+          </div>
+        </div>
+
+        <section class="settings-grid">
+          <section class="panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Identity</p>
+                <h2>Profile Details</h2>
+              </div>
+            </div>
+            <div id="profileDetailsPanel" class="profile-panel-content"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Private repository access</p>
+                <h2>GitHub Connection</h2>
+              </div>
+            </div>
+            <div id="profileGithubPanel" class="profile-panel-content"></div>
+          </section>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">How private repo verification works</p>
+              <h2>Example Flows</h2>
+            </div>
+          </div>
+          <div id="privateRepoExamples" class="example-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Session audit</p>
+              <h2>Wallet / GitHub Activity</h2>
+            </div>
+          </div>
+          <div id="sessionAuditLog" class="event-list"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="wallet-modal-backdrop" id="walletModalBackdrop" hidden></div>
+  <section class="wallet-modal" id="walletModal" hidden aria-labelledby="walletModalTitle" aria-modal="true" role="dialog">
+    <div class="wallet-modal-head">
+      <div>
+        <p class="eyebrow">Wallet connect</p>
+        <h2 id="walletModalTitle">Choose Wallet</h2>
+      </div>
+      <button class="icon-button close-button" id="closeWalletModal" type="button" aria-label="Close wallet modal">
+        <span class="close-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="wallet-provider-grid">
+      <button class="wallet-provider" data-wallet="metamask" type="button">
+        <strong>MetaMask</strong>
+        <span>EVM-style wallet session</span>
+      </button>
+      <button class="wallet-provider" data-wallet="phantom" type="button">
+        <strong>Phantom</strong>
+        <span>Solana-style wallet session</span>
+      </button>
+    </div>
+    <p class="wallet-modal-note">This is a browser-session simulator. It does not call a real extension yet.</p>
+  </section>
+
+  <div class="profile-menu-backdrop" id="profileMenuBackdrop" hidden></div>
+  <section class="profile-menu" id="profileMenu" hidden aria-labelledby="profileMenuTitle" role="dialog" aria-modal="true">
+    <div class="wallet-modal-head">
+      <div>
+        <p class="eyebrow">Wallet profile</p>
+        <h2 id="profileMenuTitle">Profile</h2>
+      </div>
+      <button class="icon-button close-button" id="closeProfileMenu" type="button" aria-label="Close profile menu">
+        <span class="close-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div id="profilePanelContent" class="profile-panel-content"></div>
+  </section>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

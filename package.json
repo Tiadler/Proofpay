@@ -1,0 +1,33 @@
+{
+  "name": "proofpay-rialo-prototype",
+  "version": "0.1.0",
+  "description": "ProofPay prototype: proof-based programmable payments on Rialo-inspired architecture.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "build": "node scripts/build-check.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "rialo",
+    "escrow",
+    "proofpay",
+    "automation",
+    "github",
+    "payments"
+  ],
+  "author": "ProofPay prototype",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "nanoid": "^5.0.9"
+  }
+}
