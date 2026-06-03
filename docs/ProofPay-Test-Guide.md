@@ -615,10 +615,13 @@ Dang mock/simulated:
 Luu y khi deploy Vercel:
 
 - Vercel khong cho ghi vao thu muc bundle `/var/task`.
-- App se dung runtime temp dir lam JSON store tam thoi tren serverless.
-- Tren Vercel, temp dir nay la `/tmp/proofpay-rialo`.
-- `/tmp` co the reset khi cold start, redeploy, hoac khi request chay tren function instance khac.
-- Demo co the create/fund/proof duoc, nhung production can database/KV rieng.
+- Nen cau hinh Vercel KV hoac Upstash Redis REST de co store ben vung.
+- Env can co: `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `PROOFPAY_STORE_KEY`.
+- Neu khong co KV/Upstash, app fallback sang runtime temp dir.
+- Tren Vercel, temp dir fallback la `/tmp/proofpay-rialo`.
+- `/tmp` khong shared giua function instances va co the reset khi cold start/redeploy.
+- Neu dung `/tmp`, bam Reload co the thay cac deal set khac nhau do request vao instance khac.
+- Production can database/KV rieng.
 
 Production can them:
 

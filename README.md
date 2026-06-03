@@ -14,7 +14,7 @@ The current app is a Node.js/Express backend with a static HTML/CSS/JavaScript d
 - Conditional escrow lifecycle: create, fund, verify GitHub PR proof, release, refund, and dispute.
 - GitHub PR verifier using the public GitHub API, with optional token support for higher rate limits.
 - Mock Rialo adapter that simulates escrow creation, funding, proof anchoring, release, and refund transactions.
-- JSON-file persistence locally in `data/proofpay.json`; serverless deployments use temporary runtime storage unless `DATA_DIR` is configured.
+- JSON-file persistence locally in `data/proofpay.json`; Vercel deployments should use Vercel KV or Upstash Redis REST for durable state.
 - Node built-in tests for core adapter and verifier behavior.
 
 ## Requirements
@@ -163,9 +163,17 @@ Node.js API -> Rialo Rust microservice -> rialo-cdk -> Rialo devnet
 
 ## Vercel / Serverless Storage
 
-Vercel serverless functions cannot write to the deployed `/var/task` bundle. The app therefore detects serverless runtime and writes the JSON demo store to the runtime temp directory by default, which is `/tmp/proofpay-rialo` on Vercel. This fixes create/fund/proof actions for demos, but temp storage is ephemeral and can reset between cold starts, deployments, or function instances.
+Vercel serverless functions cannot write to the deployed `/var/task` bundle. The app supports Vercel KV or Upstash Redis REST credentials for durable serverless state:
 
-For production persistence, replace `src/storage/jsonStore.js` with a durable backend such as Vercel KV, Postgres, Supabase, Neon, Upstash Redis, or another database. You can also set `DATA_DIR` for local/self-hosted deployments where the filesystem is writable.
+```text
+KV_REST_API_URL=...
+KV_REST_API_TOKEN=...
+PROOFPAY_STORE_KEY=proofpay:state
+```
+
+Without KV/Upstash credentials, serverless deployments fall back to runtime temp storage, which is `/tmp/proofpay-rialo` on Vercel. Temp storage is not shared across function instances and can reset between cold starts or redeploys, so Reload may show different deal sets. Use KV/Upstash for stable create/fund/proof/filter behavior.
+
+For production persistence beyond demos, you can also replace `src/storage/jsonStore.js` with Postgres, Supabase, Neon, or another database.
 
 ## Project Structure
 

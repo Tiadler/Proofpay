@@ -56,3 +56,68 @@ test('json store falls back to /tmp on Vercel-like runtime', async () => {
     }
   }
 });
+
+test('json store uses remote KV REST store when credentials are present', async () => {
+  const previousUrl = process.env.KV_REST_API_URL;
+  const previousToken = process.env.KV_REST_API_TOKEN;
+  const previousKey = process.env.PROOFPAY_STORE_KEY;
+  const previousSeed = process.env.SEED_BUNDLED_DATA;
+  const originalFetch = globalThis.fetch;
+  const remote = new Map();
+  const commands = [];
+
+  process.env.KV_REST_API_URL = 'https://kv.example';
+  process.env.KV_REST_API_TOKEN = 'token';
+  process.env.PROOFPAY_STORE_KEY = 'proofpay:test';
+  process.env.SEED_BUNDLED_DATA = 'false';
+
+  globalThis.fetch = async (_url, options) => {
+    const command = JSON.parse(options.body);
+    commands.push(command);
+    const [op, key, value] = command;
+
+    if (op === 'GET') {
+      return Response.json({ result: remote.get(key) || null });
+    }
+    if (op === 'SET') {
+      remote.set(key, value);
+      return Response.json({ result: 'OK' });
+    }
+    return Response.json({ error: 'unsupported command' }, { status: 400 });
+  };
+
+  try {
+    const store = await import(`../src/storage/jsonStore.js?kv=${Date.now()}`);
+    const state = await store.readStore();
+    assert.deepEqual(state.deals, []);
+
+    await store.writeStore({ ...state, deals: [{ id: 'remote_deal' }] });
+    const nextState = await store.readStore();
+
+    assert.equal(nextState.deals[0].id, 'remote_deal');
+    assert.deepEqual(commands[0], ['GET', 'proofpay:test']);
+    assert.equal(commands.some((command) => command[0] === 'SET'), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previousUrl == null) {
+      delete process.env.KV_REST_API_URL;
+    } else {
+      process.env.KV_REST_API_URL = previousUrl;
+    }
+    if (previousToken == null) {
+      delete process.env.KV_REST_API_TOKEN;
+    } else {
+      process.env.KV_REST_API_TOKEN = previousToken;
+    }
+    if (previousKey == null) {
+      delete process.env.PROOFPAY_STORE_KEY;
+    } else {
+      process.env.PROOFPAY_STORE_KEY = previousKey;
+    }
+    if (previousSeed == null) {
+      delete process.env.SEED_BUNDLED_DATA;
+    } else {
+      process.env.SEED_BUNDLED_DATA = previousSeed;
+    }
+  }
+});
