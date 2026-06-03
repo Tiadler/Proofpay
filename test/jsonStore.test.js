@@ -57,6 +57,34 @@ test('json store falls back to /tmp on Vercel-like runtime', async () => {
   }
 });
 
+test('json store ignores read-only DATA_DIR on Vercel-like runtime', async () => {
+  const previousVercel = process.env.VERCEL;
+  const previousDataDir = process.env.DATA_DIR;
+  process.env.VERCEL = '1';
+  process.env.DATA_DIR = path.join(process.cwd(), 'data');
+
+  try {
+    const store = await import(`../src/storage/jsonStore.js?readonlyDataDir=${Date.now()}`);
+    const state = await store.readStore();
+
+    assert.equal(Array.isArray(state.deals), true);
+    await store.writeStore({ ...state, deals: [{ id: 'safe_tmp_deal' }] });
+    const nextState = await store.readStore();
+    assert.equal(nextState.deals[0].id, 'safe_tmp_deal');
+  } finally {
+    if (previousVercel == null) {
+      delete process.env.VERCEL;
+    } else {
+      process.env.VERCEL = previousVercel;
+    }
+    if (previousDataDir == null) {
+      delete process.env.DATA_DIR;
+    } else {
+      process.env.DATA_DIR = previousDataDir;
+    }
+  }
+});
+
 test('json store uses remote KV REST store when credentials are present', async () => {
   const previousUrl = process.env.KV_REST_API_URL;
   const previousToken = process.env.KV_REST_API_TOKEN;

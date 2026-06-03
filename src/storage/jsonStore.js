@@ -16,7 +16,27 @@ const runsOnReadonlyServerless = Boolean(
 const defaultDataDir = runsOnReadonlyServerless
   ? path.join(os.tmpdir(), 'proofpay-rialo')
   : path.resolve(process.cwd(), 'data');
-const DATA_DIR = path.resolve(process.env.DATA_DIR || defaultDataDir);
+
+function isInside(parent, child) {
+  const relative = path.relative(parent, child);
+  return Boolean(relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function safeDataDir() {
+  const requested = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : null;
+  if (!requested) return defaultDataDir;
+  if (!runsOnReadonlyServerless) return requested;
+
+  const readonlyRoots = [
+    process.cwd(),
+    process.env.LAMBDA_TASK_ROOT
+  ].filter(Boolean).map((dir) => path.resolve(dir));
+
+  const pointsToReadonlyBundle = readonlyRoots.some((root) => requested === root || isInside(root, requested));
+  return pointsToReadonlyBundle ? defaultDataDir : requested;
+}
+
+const DATA_DIR = safeDataDir();
 const DATA_FILE = path.join(DATA_DIR, 'proofpay.json');
 
 const initialState = {
