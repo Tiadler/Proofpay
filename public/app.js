@@ -15,6 +15,8 @@ const state = {
 };
 
 let routeRefreshToken = 0;
+let emptyEscrowsPollTimer = null;
+let emptyEscrowsPollAttempts = 0;
 
 const routes = {
   dashboard: 'ProofPay Console',
@@ -99,7 +101,11 @@ const statusLabels = {
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Content-Type': 'application/json'
+    },
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined
   });
@@ -714,9 +720,11 @@ function renderDeals() {
         </td>
       </tr>
     `;
+    scheduleEmptyEscrowsPoll();
     return;
   }
 
+  stopEmptyEscrowsPoll();
   $('#dealsTable').innerHTML = deals.map((deal) => `
     <tr data-deal-id="${deal.id}" class="${deal.id === selectedId ? 'selected' : ''}">
       <td class="deal-title-cell">
@@ -737,6 +745,43 @@ function renderDeals() {
       </td>
     </tr>
   `).join('');
+}
+
+function filteredDeals() {
+  const filter = $('#statusFilter').value;
+  return filter === 'all' ? state.deals : state.deals.filter((deal) => deal.status === filter);
+}
+
+function stopEmptyEscrowsPoll() {
+  if (!emptyEscrowsPollTimer) return;
+  clearTimeout(emptyEscrowsPollTimer);
+  emptyEscrowsPollTimer = null;
+  emptyEscrowsPollAttempts = 0;
+}
+
+function scheduleEmptyEscrowsPoll() {
+  if (state.route !== 'escrows') return;
+  if (filteredDeals().length) {
+    stopEmptyEscrowsPoll();
+    return;
+  }
+  if (emptyEscrowsPollTimer) return;
+  if (emptyEscrowsPollAttempts >= 20) return;
+
+  emptyEscrowsPollTimer = setTimeout(async () => {
+    emptyEscrowsPollTimer = null;
+    if (state.route !== 'escrows') {
+      stopEmptyEscrowsPoll();
+      return;
+    }
+
+    emptyEscrowsPollAttempts += 1;
+    try {
+      await refreshRouteData({ fromEmptyPoll: true });
+    } catch {
+      scheduleEmptyEscrowsPoll();
+    }
+  }, 1200);
 }
 
 function renderDetails() {
@@ -1097,7 +1142,10 @@ async function faucet() {
 function bindEvents() {
   $('#themeToggle').addEventListener('click', toggleTheme);
   $('#reloadDeals').addEventListener('click', refresh);
-  $('#statusFilter').addEventListener('change', renderDeals);
+  $('#statusFilter').addEventListener('change', () => {
+    stopEmptyEscrowsPoll();
+    renderDeals();
+  });
   $('#resetForm').addEventListener('click', resetForm);
   $('#openWalletModal').addEventListener('click', openWalletModal);
   $('#openProfileMenu').addEventListener('click', openProfileMenu);
@@ -1187,6 +1235,7 @@ function bindEvents() {
   window.addEventListener('resize', syncSidebarControls);
   window.addEventListener('hashchange', () => {
     state.route = routeFromHash();
+    if (state.route !== 'escrows') stopEmptyEscrowsPoll();
     renderRoute();
     refreshRouteData();
   });
@@ -1255,6 +1304,7 @@ function navigateTo(route) {
 
 function renderRoute() {
   state.route = routes[state.route] ? state.route : routeFromHash();
+  if (state.route !== 'escrows') stopEmptyEscrowsPoll();
   $$('.page').forEach((page) => {
     page.classList.toggle('active', page.dataset.page === state.route);
   });
@@ -1265,7 +1315,7 @@ function renderRoute() {
   window.scrollTo(0, 0);
 }
 
-async function refreshRouteData() {
+async function refreshRouteData({ fromEmptyPoll = false } = {}) {
   if (state.route !== 'escrows') return;
 
   const token = ++routeRefreshToken;
@@ -1275,7 +1325,8 @@ async function refreshRouteData() {
     if (token !== routeRefreshToken || state.route !== 'escrows') return;
     renderAll();
   } catch (err) {
-    if (token === routeRefreshToken) toast(err.message, 'error');
+    if (token === routeRefreshToken && !fromEmptyPoll) toast(err.message, 'error');
+    throw err;
   }
 }
 
