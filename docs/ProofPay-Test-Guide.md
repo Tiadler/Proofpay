@@ -4,7 +4,7 @@
 
 ProofPay la mot DApp prototype cho thanh toan escrow theo bang chung.
 
-Y tuong cot loi:
+Y tuong:
 
 ```text
 Lock funds first -> verify proof later -> release or refund
@@ -36,43 +36,11 @@ Ban hien tai la prototype:
 - UI co 2 theme sang/toi, chuyen bang icon mat troi/mat trang tren topbar.
 - Sidebar desktop co the thu gon/mo rong; mobile dung nut logo/Menu de mo sidebar.
 
-## 2. Chay app
 
-Trong terminal:
 
-```powershell
-cd D:\rialo-product\proofpay-rialo\proofpay-rialo
-npm.cmd run dev
-```
+## 2. Cac trang trong app
 
-Mo browser:
-
-```text
-http://localhost:3000/#/dashboard
-```
-
-Neu dung PowerShell tren Windows, dung `npm.cmd`, khong dung `npm`, vi may co the chan `npm.ps1`.
-
-## 2.1 Kiem tra build va automated tests
-
-Chay truoc khi demo hoac truoc khi ban giao:
-
-```powershell
-npm.cmd run build
-npm.cmd test
-```
-
-Ket qua mong doi:
-
-- `npm.cmd run build` in ra `Build check passed.`
-- `npm.cmd test` pass tat ca test Node built-in.
-- Hien tai co test cho GitHub PR verifier va mock Rialo adapter.
-
-Neu chay bang PowerShell va gap loi `npm.ps1 cannot be loaded`, dung `npm.cmd` nhu tren.
-
-## 3. Cac trang trong app
-
-### 3.0 UI shell chung
+### 2.0 UI shell chung
 
 Kiem tra tren moi page:
 
@@ -87,7 +55,7 @@ Kiem tra tren moi page:
 - Dang light theme thi hien icon mat trang de chuyen sang dark theme.
 - Theme duoc luu trong browser localStorage, reload page van giu theme da chon.
 
-### 3.1 Dashboard
+### 2.1 Dashboard
 
 URL:
 
@@ -112,7 +80,7 @@ Muc dich:
 - Console mock adapter khong hien default RPC URL.
 - Tao diem vao nhanh cho flow `Create GitHub Escrow`.
 
-### 3.2 Escrows
+### 2.2 Escrows
 
 URL:
 
@@ -136,19 +104,18 @@ Muc dich:
 
 - Xem deal nao da tao.
 - Chon deal de thao tac.
-- Xem deal da duoc auto-fund khi deploy.
+- Fund deal bang RIALO simulated.
 - Verify GitHub proof.
 - Release hoac refund.
 
 Luu y:
 
-- `Deploy Escrow Workflow` chi thanh cong neu wallet connected trung voi payer address.
-- `Deploy Escrow Workflow` se auto-fund va tru RIALO balance cua payer ngay.
-- `Fund` chi can dung cho deal cu con o status `DRAFT`.
+- `Fund` chi thanh cong neu wallet connected trung voi payer address cua deal.
+- `Fund` se tru RIALO balance cua payer trong session ledger.
 - `Release` se cong RIALO cho payee address.
 - `Refund` se hoan RIALO ve payer address.
 
-### 3.3 Create Deal
+### 2.3 Create Deal
 
 URL:
 
@@ -176,7 +143,6 @@ Muc dich:
 - Tao dieu kien thanh toan.
 - Luu condition payload.
 - Tao mock Rialo escrow account.
-- Auto-fund escrow neu amount khong vuot qua RIALO balance cua wallet.
 
 Vi du:
 
@@ -192,9 +158,9 @@ Pull Request: 1
 Deadline: 7 ngay toi
 ```
 
-Sau khi deploy xong, app tu fund deal, tru balance payer, va chuyen sang page `Escrows`.
+Sau khi tao xong, app tu chuyen sang page `Escrows`.
 
-### 3.4 Proofs
+### 2.4 Proofs
 
 URL:
 
@@ -229,7 +195,7 @@ Day la proof hash.
 Day la ket qua verifier.
 ```
 
-### 3.5 Adapter
+### 2.5 Adapter
 
 URL:
 
@@ -257,7 +223,7 @@ Muc dich:
 - Xac nhan wallet/RIALO flow dang chay trong browser session.
 - Giai thich duong nang cap production voi GitHub App.
 
-### 3.6 Profile / Settings
+### 2.6 Profile / Settings
 
 URL:
 
@@ -285,7 +251,7 @@ Muc dich:
 - Giai thich cach private repo verification hoat dong.
 - Xem audit log cua faucet/fund/release/refund/GitHub connect.
 
-## 4. Flow test tu dau toi cuoi
+## 3. Flow test tu dau toi cuoi
 
 ### Flow UI: Logo, sidebar, theme
 
@@ -379,29 +345,29 @@ Ket qua mong doi:
 - `Payer Address` tu dien bang wallet address.
 - `Token` mac dinh la `RIALO`.
 
-7. Bam `Deploy Escrow Workflow` voi amount nho hon hoac bang balance hien co.
+7. Tao deal voi amount nho hon balance hien co.
 
 Ket qua mong doi:
 
-- Neu amount lon hon balance, app bao loi insufficient balance va khong tao deal.
-- Neu amount hop le, deal duoc tao va auto-funded.
-- RIALO balance cua payer giam di dung amount.
+- Deal duoc tao.
 - App tu chuyen sang page `Escrows`.
 
-### Flow B: Refund escrow da funded
+### Flow B: Fund escrow va refund
 
 1. Vao:
 
 ```text
-http://localhost:3000/#/escrows
+https://proofpay-nu.vercel.app/#/escrows
 ```
 
 2. Chon deal vua tao.
 
-3. Xac nhan deal dang status `FUNDED`.
+3. Bam `Fund`.
 
 Ket qua mong doi:
 
+- Deal status chuyen `DRAFT -> FUNDED`.
+- RIALO balance cua payer giam di dung amount.
 - Detail co funding tx mock.
 - Audit log co `wallet.fund`.
 
@@ -410,7 +376,7 @@ Ket qua mong doi:
 Neu khong co nut refund trong table, vao:
 
 ```text
-http://localhost:3000/#/proofs
+https://proofpay-nu.vercel.app/#/proofs
 ```
 
 Sau do bam `Refund` trong selected actions.
@@ -427,15 +393,15 @@ Flow nay dung de test truong hop:
 Client khoa tien nhung proof khong dat -> refund lai client.
 ```
 
-### Flow C: Deploy escrow, verify GitHub, release
+### Flow C: Fund escrow, verify GitHub, release
 
 Flow nay can GitHub PR hop le.
 
-1. Deploy deal voi repo public va PR da merge.
+1. Tao deal voi repo public va PR da merge.
 
 Vi du co the thu voi public repo, nhung can chon PR co that va da merged.
 
-2. Deal se duoc auto-funded neu wallet du RIALO.
+2. Fund deal.
 
 3. Bam `Verify`.
 
@@ -462,7 +428,7 @@ Luu y:
 1. Vao:
 
 ```text
-http://localhost:3000/#/profile
+https://proofpay-nu.vercel.app/#/profile
 ```
 
 2. Bam `Connect GitHub`.
@@ -480,16 +446,8 @@ Ket qua mong doi neu da cau hinh OAuth env:
 - Bam link de di qua GitHub OAuth.
 - Callback luu GitHub identity vao session profile.
 
-Env can co:
 
-```env
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-GITHUB_APP_SLUG=
-PUBLIC_BASE_URL=http://localhost:3000
-```
-
-## 5. Private repo verification hoat dong the nao?
+## 4. Private repo verification hoat dong the nao?
 
 ### Bai toan
 
@@ -594,7 +552,7 @@ Ket qua:
 - Payment khong release.
 - Client co the refund.
 
-## 6. Phan nao la mock, phan nao la that?
+## 5. Phan nao la mock, phan nao la that?
 
 Dang that:
 
@@ -625,16 +583,6 @@ Luu y khi deploy Vercel:
 - Neu dung `/tmp`, bam Reload co the thay cac deal set khac nhau do request vao instance khac.
 - Production can database/KV rieng.
 
-Production can them:
-
-- Real wallet adapter.
-- Real RIALO token or Rialo asset.
-- Real escrow contract/program.
-- Real GitHub App credentials.
-- Durable database or KV store.
-- Secure token storage.
-- Verifier identity/signature.
-- Proof registry.
 
 ## 7. Demo script ngan
 
@@ -646,10 +594,11 @@ Dung script nay de demo nhanh:
 3. Connect Wallet: Tao profile bang wallet.
 4. Faucet: Nhan 100 RIALO.
 5. Profile: Connect GitHub va xem permissions.
-6. Create Deal: Deploy GitHub PR escrow va auto-fund.
-7. Proofs: Verify proof.
-8. Escrows/Proofs: Release neu verified, refund neu fail.
-9. Profile: Xem audit log.
+6. Create Deal: Tao GitHub PR escrow.
+7. Escrows: Fund deal.
+8. Proofs: Verify proof.
+9. Escrows/Proofs: Release neu verified, refund neu fail.
+10. Profile: Xem audit log.
 ```
 
 Thong diep chinh:

@@ -198,13 +198,13 @@
           </div>
 
           <div class="wallet-banner" id="createWalletBanner">
-            Connect a wallet before deploying. Deploy locks RIALO from the payer balance immediately.
+            Connect a wallet to use its address as payer and simulate RIALO funding.
           </div>
 
           <div class="form-grid">
             <label>Title <input name="title" value="Fix checkout bug" autocomplete="off" /></label>
             <label>Amount <input name="amount" value="100" inputmode="decimal" /></label>
-            <label>Token <input name="tokenSymbol" value="RIALO" autocomplete="off" /></label>
+            <label>Token <input name="tokenSymbol" value="MRD" autocomplete="off" /></label>
             <label>Payer Address <input name="payerAddress" value="rialo_client_demo" autocomplete="off" /></label>
             <label>Payee Address <input name="payeeAddress" value="rialo_freelancer_demo" autocomplete="off" /></label>
             <label>Deadline <input name="deadline" type="datetime-local" /></label>
@@ -219,7 +219,7 @@
           </label>
 
           <div class="form-actions">
-            <button class="button primary" id="deployEscrowButton" type="submit">Deploy Escrow Workflow</button>
+            <button class="button primary" type="submit">Deploy Escrow Workflow</button>
             <button class="button ghost" id="resetForm" type="button">Reset</button>
           </div>
         </form>
