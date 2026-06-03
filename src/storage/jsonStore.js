@@ -119,6 +119,21 @@ export async function writeStore(state) {
   return state;
 }
 
+export function storageInfo() {
+  return {
+    provider: usesRemoteStore ? 'remote-kv' : runsOnReadonlyServerless ? 'temp-file' : 'local-file',
+    dataDir: usesRemoteStore ? null : DATA_DIR,
+    dataFile: usesRemoteStore ? null : DATA_FILE,
+    remoteKey: usesRemoteStore ? remoteStoreKey : null,
+    hasRemoteUrl: Boolean(remoteStoreUrl),
+    hasRemoteToken: Boolean(remoteStoreToken),
+    runsOnReadonlyServerless,
+    requestedDataDir: process.env.DATA_DIR || null,
+    ignoredReadonlyDataDir: Boolean(process.env.DATA_DIR && runsOnReadonlyServerless && path.resolve(process.env.DATA_DIR) !== DATA_DIR),
+    cwd: process.cwd()
+  };
+}
+
 export async function updateStore(mutator) {
   const state = await readStore();
   const result = await mutator(state);

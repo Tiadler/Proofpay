@@ -1,5 +1,5 @@
 import express from 'express';
-import { readStore } from '../storage/jsonStore.js';
+import { readStore, storageInfo } from '../storage/jsonStore.js';
 import { rialoAdapter } from '../adapters/rialoAdapter.js';
 
 export const systemRouter = express.Router();
@@ -10,6 +10,18 @@ systemRouter.get('/health', (_req, res) => {
 
 systemRouter.get('/rialo', async (_req, res) => {
   res.json(await rialoAdapter.getNetworkInfo());
+});
+
+systemRouter.get('/storage', async (_req, res) => {
+  const state = await readStore();
+  res.json({
+    ...storageInfo(),
+    counts: {
+      deals: state.deals.length,
+      proofs: state.proofs.length,
+      events: state.events.length
+    }
+  });
 });
 
 systemRouter.get('/summary', async (_req, res) => {

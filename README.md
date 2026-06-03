@@ -173,6 +173,8 @@ PROOFPAY_STORE_KEY=proofpay:state
 
 Without KV/Upstash credentials, serverless deployments fall back to runtime temp storage, which is `/tmp/proofpay-rialo` on Vercel. Temp storage is not shared across function instances and can reset between cold starts or redeploys, so Reload may show different deal sets. Use KV/Upstash for stable create/fund/proof/filter behavior.
 
+After deploying, open `/api/system/storage` on your Vercel domain. `provider` must be `remote-kv` for stable data. If it says `temp-file`, the app is still using temporary serverless storage.
+
 For production persistence beyond demos, you can also replace `src/storage/jsonStore.js` with Postgres, Supabase, Neon, or another database.
 
 ## Project Structure

@@ -38,8 +38,11 @@ test('json store falls back to /tmp on Vercel-like runtime', async () => {
   try {
     const store = await import(`../src/storage/jsonStore.js?vercel=${Date.now()}`);
     const state = await store.readStore();
+    const info = store.storageInfo();
 
     assert.equal(Array.isArray(state.deals), true);
+    assert.equal(info.provider, 'temp-file');
+    assert.equal(info.runsOnReadonlyServerless, true);
     await store.appendEvent('deal_tmp', 'TMP_STORE_CHECK', {});
     const nextState = await store.readStore();
     assert.equal(nextState.events[0].dealId, 'deal_tmp');
@@ -66,8 +69,10 @@ test('json store ignores read-only DATA_DIR on Vercel-like runtime', async () =>
   try {
     const store = await import(`../src/storage/jsonStore.js?readonlyDataDir=${Date.now()}`);
     const state = await store.readStore();
+    const info = store.storageInfo();
 
     assert.equal(Array.isArray(state.deals), true);
+    assert.equal(info.ignoredReadonlyDataDir, true);
     await store.writeStore({ ...state, deals: [{ id: 'safe_tmp_deal' }] });
     const nextState = await store.readStore();
     assert.equal(nextState.deals[0].id, 'safe_tmp_deal');
@@ -117,7 +122,10 @@ test('json store uses remote KV REST store when credentials are present', async 
   try {
     const store = await import(`../src/storage/jsonStore.js?kv=${Date.now()}`);
     const state = await store.readStore();
+    const info = store.storageInfo();
     assert.deepEqual(state.deals, []);
+    assert.equal(info.provider, 'remote-kv');
+    assert.equal(info.remoteKey, 'proofpay:test');
 
     await store.writeStore({ ...state, deals: [{ id: 'remote_deal' }] });
     const nextState = await store.readStore();
