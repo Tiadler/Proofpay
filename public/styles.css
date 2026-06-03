@@ -250,20 +250,12 @@ button {
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 12px;
   min-height: 46px;
   padding: 0 14px;
   border-radius: 8px;
   color: var(--muted);
   font-size: 14px;
   font-weight: 600;
-}
-
-.nav-link span {
-  min-width: 20px;
-  color: var(--dim);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
 }
 
 .nav-text {
@@ -363,10 +355,6 @@ body.sidebar-collapsed .nav-list {
 body.sidebar-collapsed .nav-link {
   justify-content: center;
   padding: 0;
-}
-
-body.sidebar-collapsed .nav-index {
-  min-width: 0;
 }
 
 .mobile-shade {
@@ -1473,10 +1461,6 @@ tbody tr.selected {
   body.sidebar-collapsed .nav-link {
     justify-content: flex-start;
     padding: 0 14px;
-  }
-
-  body.sidebar-collapsed .nav-index {
-    min-width: 20px;
   }
 
   .sidebar.open {
