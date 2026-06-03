@@ -14,6 +14,8 @@ const state = {
   githubStatus: null
 };
 
+let routeRefreshToken = 0;
+
 const routes = {
   dashboard: 'ProofPay Console',
   escrows: 'Escrows',
@@ -1139,9 +1141,6 @@ function bindEvents() {
       const deal = await api('/api/deals', { method: 'POST', body: payload });
       toast(`Escrow created: ${shortHash(deal.id, 8)}`);
       state.selectedDeal = await api(`/api/deals/${deal.id}`);
-      await loadSystem();
-      await loadDeals();
-      renderAll();
       navigateTo('escrows');
     } catch (err) {
       toast(err.message, 'error');
@@ -1189,6 +1188,7 @@ function bindEvents() {
   window.addEventListener('hashchange', () => {
     state.route = routeFromHash();
     renderRoute();
+    refreshRouteData();
   });
 }
 
@@ -1250,6 +1250,7 @@ function navigateTo(route) {
   }
   state.route = route;
   renderRoute();
+  refreshRouteData();
 }
 
 function renderRoute() {
@@ -1262,6 +1263,20 @@ function renderRoute() {
   });
   $('#pageTitle').textContent = routes[state.route] || routes.dashboard;
   window.scrollTo(0, 0);
+}
+
+async function refreshRouteData() {
+  if (state.route !== 'escrows') return;
+
+  const token = ++routeRefreshToken;
+  try {
+    await loadSystem();
+    await loadDeals();
+    if (token !== routeRefreshToken || state.route !== 'escrows') return;
+    renderAll();
+  } catch (err) {
+    if (token === routeRefreshToken) toast(err.message, 'error');
+  }
 }
 
 async function init() {
@@ -1280,6 +1295,7 @@ async function init() {
   renderPrograms();
   try {
     await refresh();
+    await refreshRouteData();
   } catch (err) {
     toast(err.message, 'error');
     renderAll();
