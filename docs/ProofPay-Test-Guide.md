@@ -612,12 +612,21 @@ Dang mock/simulated:
 - Escrow custody.
 - GitHub App install state neu chua config env.
 
+Luu y khi deploy Vercel:
+
+- Vercel khong cho ghi vao thu muc bundle `/var/task`.
+- App se dung runtime temp dir lam JSON store tam thoi tren serverless.
+- Tren Vercel, temp dir nay la `/tmp/proofpay-rialo`.
+- `/tmp` co the reset khi cold start, redeploy, hoac khi request chay tren function instance khac.
+- Demo co the create/fund/proof duoc, nhung production can database/KV rieng.
+
 Production can them:
 
 - Real wallet adapter.
 - Real RIALO token or Rialo asset.
 - Real escrow contract/program.
 - Real GitHub App credentials.
+- Durable database or KV store.
 - Secure token storage.
 - Verifier identity/signature.
 - Proof registry.

@@ -1,8 +1,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import os from 'node:os';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const bundledDataFile = path.resolve(process.cwd(), 'data', 'proofpay.json');
+const runsOnReadonlyServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+const defaultDataDir = runsOnReadonlyServerless
+  ? path.join(os.tmpdir(), 'proofpay-rialo')
+  : path.resolve(process.cwd(), 'data');
+const DATA_DIR = path.resolve(process.env.DATA_DIR || defaultDataDir);
 const DATA_FILE = path.join(DATA_DIR, 'proofpay.json');
 
 const initialState = {
@@ -14,12 +24,23 @@ const initialState = {
   events: []
 };
 
+async function initialStore() {
+  if (DATA_FILE === bundledDataFile) return initialState;
+
+  try {
+    const raw = await fs.readFile(bundledDataFile, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return initialState;
+  }
+}
+
 async function ensureStore() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
     await fs.access(DATA_FILE);
   } catch {
-    await fs.writeFile(DATA_FILE, JSON.stringify(initialState, null, 2));
+    await fs.writeFile(DATA_FILE, JSON.stringify(await initialStore(), null, 2));
   }
 }
 

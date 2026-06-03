@@ -14,7 +14,7 @@ The current app is a Node.js/Express backend with a static HTML/CSS/JavaScript d
 - Conditional escrow lifecycle: create, fund, verify GitHub PR proof, release, refund, and dispute.
 - GitHub PR verifier using the public GitHub API, with optional token support for higher rate limits.
 - Mock Rialo adapter that simulates escrow creation, funding, proof anchoring, release, and refund transactions.
-- JSON-file persistence in `data/proofpay.json`.
+- JSON-file persistence locally in `data/proofpay.json`; serverless deployments use temporary runtime storage unless `DATA_DIR` is configured.
 - Node built-in tests for core adapter and verifier behavior.
 
 ## Requirements
@@ -160,6 +160,12 @@ Recommended production integration path:
 ```text
 Node.js API -> Rialo Rust microservice -> rialo-cdk -> Rialo devnet
 ```
+
+## Vercel / Serverless Storage
+
+Vercel serverless functions cannot write to the deployed `/var/task` bundle. The app therefore detects serverless runtime and writes the JSON demo store to the runtime temp directory by default, which is `/tmp/proofpay-rialo` on Vercel. This fixes create/fund/proof actions for demos, but temp storage is ephemeral and can reset between cold starts, deployments, or function instances.
+
+For production persistence, replace `src/storage/jsonStore.js` with a durable backend such as Vercel KV, Postgres, Supabase, Neon, Upstash Redis, or another database. You can also set `DATA_DIR` for local/self-hosted deployments where the filesystem is writable.
 
 ## Project Structure
 
