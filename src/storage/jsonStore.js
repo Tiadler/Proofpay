@@ -40,6 +40,10 @@ const DATA_DIR = safeDataDir();
 const DATA_FILE = path.join(DATA_DIR, 'proofpay.json');
 
 const initialState = {
+  users: [],
+  sessions: [],
+  githubInstallations: [],
+  githubRepositories: [],
   deals: [],
   vaults: [],
   payments: [],

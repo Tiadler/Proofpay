@@ -14,72 +14,8 @@ The current app is a Node.js/Express backend with a static HTML/CSS/JavaScript d
 - Conditional escrow lifecycle: create, fund, verify GitHub PR proof, release, refund, and dispute.
 - GitHub PR verifier using the public GitHub API, with optional token support for higher rate limits.
 - Mock Rialo adapter that simulates escrow creation, funding, proof anchoring, release, and refund transactions.
-- JSON-file persistence locally in `data/proofpay.json`; Vercel deployments should use Vercel KV or Upstash Redis REST for durable state.
+- Storage layer with local JSON fallback and optional Vercel KV/Upstash Redis REST for durable serverless state.
 - Node built-in tests for core adapter and verifier behavior.
-
-## Requirements
-
-- Node.js 18 or newer.
-- npm.
-
-## Quick Start
-
-```bash
-npm install
-cp .env.example .env
-npm start
-```
-
-Open the app:
-
-```text
-http://localhost:3000
-```
-
-On Windows PowerShell, create `.env` manually or run:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-If PowerShell blocks `npm.ps1` because of ExecutionPolicy, use `npm.cmd` instead:
-
-```powershell
-npm.cmd run build
-npm.cmd test
-```
-
-## Scripts
-
-```bash
-npm start
-```
-
-Starts the Express server from `src/server.js`.
-
-```bash
-npm run dev
-```
-
-Starts the server with Node watch mode.
-
-```bash
-npm run seed
-```
-
-Seeds local JSON data.
-
-```bash
-npm run build
-```
-
-Runs the prototype build check. This validates JavaScript syntax for the backend and browser entrypoint and verifies required static assets such as `public/static/logo/logo.png`.
-
-```bash
-npm test
-```
-
-Runs Node built-in tests under `test/`.
 
 ## User Flow
 
@@ -100,6 +36,9 @@ GET  /api/system/summary
 GET  /api/github/status
 GET  /api/github/connect
 GET  /api/github/callback
+GET  /api/github/install
+GET  /api/github/setup/callback
+GET  /api/github/installations
 GET  /api/deals
 POST /api/deals
 GET  /api/deals/:id
@@ -133,11 +72,20 @@ For private repository production flows, configure GitHub OAuth/App values:
 ```text
 GITHUB_CLIENT_ID=your_client_id
 GITHUB_CLIENT_SECRET=your_client_secret
+GITHUB_APP_ID=your_app_id
 GITHUB_APP_SLUG=your_app_slug
-PUBLIC_BASE_URL=http://localhost:3000
+GITHUB_APP_PRIVATE_KEY_BASE64=base64_encoded_private_key
+PUBLIC_BASE_URL=https://your-deployed-domain.example
 ```
 
-The UI currently simulates the private-repo GitHub App flow unless OAuth is configured.
+Private repository verification should use a GitHub App installation, not a broad user OAuth token. The intended flow is:
+
+1. The client grants the developer access to the private repository through GitHub.
+2. The client installs the ProofPay GitHub App on the repository.
+3. The deal condition includes `githubInstallationId`, `owner`, `repo`, `pullNumber`, optional `expectedAuthor`, and `deadline`.
+4. The verifier creates a short-lived installation token at verify time, reads PR metadata, and publishes only the verification result/proof hash.
+
+The UI still supports a simulated GitHub profile narrative, but the backend now has GitHub App installation routes and verifier token selection for private repositories.
 
 ## Rialo Adapter Status
 
@@ -182,10 +130,12 @@ For production persistence beyond demos, you can also replace `src/storage/jsonS
 ```text
 proofpay-rialo/
   data/
-    proofpay.json              Local JSON persistence
+    proofpay.json              Ignored local JSON fallback
   docs/
     ProofPay.md                Product and architecture document
+    ProofPay-DApp-Explainer.md Product explainer, flows, and review questions
     ProofPay-Test-Guide.md     Manual testing guide
+    ProofPay-Test-Guide-EN.md  English manual testing guide
   public/
     index.html                 Static app shell
     app.js                     Browser app logic

@@ -1,17 +1,19 @@
 import crypto from 'node:crypto';
+import { getInstallationToken } from '../github/githubAppClient.js';
 
 function sha256(value) {
   return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
 export class GithubPrVerifier {
-  constructor({ token = process.env.GITHUB_TOKEN } = {}) {
+  constructor({ token = process.env.GITHUB_TOKEN, installationTokenProvider = getInstallationToken } = {}) {
     this.token = token;
+    this.installationTokenProvider = installationTokenProvider;
     this.type = 'github_pr_merged';
   }
 
   async verify(payload) {
-    const { owner, repo, pullNumber, expectedAuthor, deadline } = payload || {};
+    const { owner, repo, pullNumber, expectedAuthor, deadline, githubInstallationId } = payload || {};
 
     if (!owner || !repo || !pullNumber) {
       return {
@@ -28,7 +30,21 @@ export class GithubPrVerifier {
       'User-Agent': 'ProofPay-Rialo-Prototype'
     };
 
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    if (githubInstallationId) {
+      try {
+        const installation = await this.installationTokenProvider(githubInstallationId);
+        headers.Authorization = `Bearer ${installation.token}`;
+      } catch (err) {
+        const result = {
+          ok: false,
+          reason: 'GITHUB_APP_TOKEN_FAILED',
+          metadata: { url, githubInstallationId, error: err.message }
+        };
+        return { ...result, proofHash: sha256(result) };
+      }
+    } else if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
 
     const response = await fetch(url, { headers });
     if (!response.ok) {

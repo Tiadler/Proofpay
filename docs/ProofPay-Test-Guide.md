@@ -60,7 +60,7 @@ Kiem tra tren moi page:
 URL:
 
 ```text
-http://localhost:3000/#/dashboard
+https://proofpay-nu.vercel.app/#/dashboard
 ```
 
 Trang nay dung de xem tong quan san pham.
@@ -85,7 +85,7 @@ Muc dich:
 URL:
 
 ```text
-http://localhost:3000/#/escrows
+https://proofpay-nu.vercel.app/#/escrows
 ```
 
 Trang nay la noi quan ly cac escrow deal.
@@ -120,7 +120,7 @@ Luu y:
 URL:
 
 ```text
-http://localhost:3000/#/create
+https://proofpay-nu.vercel.app/#/create
 ```
 
 Trang nay dung de tao escrow moi.
@@ -165,7 +165,7 @@ Sau khi tao xong, app tu chuyen sang page `Escrows`.
 URL:
 
 ```text
-http://localhost:3000/#/proofs
+https://proofpay-nu.vercel.app/#/proofs
 ```
 
 Trang nay dung de xem proof pipeline cua deal dang chon.
@@ -200,7 +200,7 @@ Day la ket qua verifier.
 URL:
 
 ```text
-http://localhost:3000/#/adapter
+https://proofpay-nu.vercel.app/#/adapter
 ```
 
 Trang nay dung de xem trang thai wallet/RIALO va Rialo adapter.
@@ -228,7 +228,7 @@ Muc dich:
 URL:
 
 ```text
-http://localhost:3000/#/profile
+https://proofpay-nu.vercel.app/#/profile
 ```
 
 Trang nay dung de quan ly profile tao tu wallet.
@@ -258,7 +258,7 @@ Muc dich:
 1. Mo:
 
 ```text
-http://localhost:3000/#/dashboard
+https://proofpay-nu.vercel.app/#/dashboard
 ```
 
 Ket qua mong doi:
@@ -299,7 +299,7 @@ Ket qua mong doi:
 1. Mo:
 
 ```text
-http://localhost:3000/#/dashboard
+https://proofpay-nu.vercel.app/#/dashboard
 ```
 
 2. Bam `Connect Wallet`.
@@ -324,7 +324,7 @@ Ket qua mong doi:
 5. Vao:
 
 ```text
-http://localhost:3000/#/profile
+https://proofpay-nu.vercel.app/#/profile
 ```
 
 Ket qua mong doi:
@@ -337,7 +337,7 @@ Ket qua mong doi:
 6. Vao:
 
 ```text
-http://localhost:3000/#/create
+https://proofpay-nu.vercel.app/#/create
 ```
 
 Ket qua mong doi:

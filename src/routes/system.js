@@ -17,6 +17,10 @@ systemRouter.get('/storage', async (_req, res) => {
   res.json({
     ...storageInfo(),
     counts: {
+      users: state.users?.length || 0,
+      sessions: state.sessions?.length || 0,
+      githubInstallations: state.githubInstallations?.length || 0,
+      githubRepositories: state.githubRepositories?.length || 0,
       deals: state.deals.length,
       proofs: state.proofs.length,
       events: state.events.length

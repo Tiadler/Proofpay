@@ -1,4 +1,6 @@
 node_modules
 .env
 data/*.json
+.npm-cache
+*.log
 .DS_Store

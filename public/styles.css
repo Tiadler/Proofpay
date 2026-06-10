@@ -1146,6 +1146,16 @@ select:focus {
   margin-bottom: 16px;
 }
 
+.form-note {
+  padding: 11px 13px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.04);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .wallet-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1164,6 +1174,16 @@ select:focus {
   display: block;
   margin-top: 5px;
   color: var(--text);
+}
+
+.repo-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.repo-list span {
+  display: block;
 }
 
 .pipeline {

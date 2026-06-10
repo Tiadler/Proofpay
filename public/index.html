@@ -34,7 +34,6 @@
       <a href="#/dashboard" class="nav-link active" data-nav="dashboard"><span class="nav-text">Dashboard</span></a>
       <a href="#/escrows" class="nav-link" data-nav="escrows"><span class="nav-text">Escrows</span></a>
       <a href="#/create" class="nav-link" data-nav="create"><span class="nav-text">Create Deal</span></a>
-      <a href="#/proofs" class="nav-link" data-nav="proofs"><span class="nav-text">Proofs</span></a>
       <a href="#/adapter" class="nav-link" data-nav="adapter"><span class="nav-text">Adapter</span></a>
       <a href="#/profile" class="nav-link" data-nav="profile"><span class="nav-text">Profile</span></a>
     </nav>
@@ -175,7 +174,10 @@
               <p class="eyebrow">Audit trail</p>
               <h2>Deal Details</h2>
             </div>
+            <span class="mono" id="selectedDealId">No deal</span>
           </div>
+          <div class="pipeline" id="pipeline"></div>
+          <div class="selected-actions" id="selectedActions"></div>
           <div class="deal-details details-empty">Select an escrow to inspect condition hashes, transaction hashes, proofs, and events.</div>
         </section>
       </section>
@@ -208,6 +210,14 @@
             <label>Payer Address <input name="payerAddress" value="rialo_client_demo" autocomplete="off" /></label>
             <label>Payee Address <input name="payeeAddress" value="rialo_freelancer_demo" autocomplete="off" /></label>
             <label>Deadline <input name="deadline" type="datetime-local" /></label>
+            <label class="wide">Installed Private Repo
+              <select name="installedRepo" id="installedRepoSelect">
+                <option value="">Manual/public repository or not installed yet</option>
+              </select>
+            </label>
+            <div class="form-note wide" id="installedRepoHint">
+              For private repositories, the client must first grant GitHub access by inviting the worker or adding them to the right org/team, then install the ProofPay GitHub App on the repo.
+            </div>
             <label>GitHub Owner <input name="owner" placeholder="vercel" autocomplete="off" /></label>
             <label>GitHub Repo <input name="repo" placeholder="next.js" autocomplete="off" /></label>
             <label>Pull Request <input name="pullNumber" placeholder="1" inputmode="numeric" /></label>
@@ -223,37 +233,6 @@
             <button class="button ghost" id="resetForm" type="button">Reset</button>
           </div>
         </form>
-      </section>
-
-      <section class="page" id="page-proofs" data-page="proofs">
-        <div class="page-title">
-          <div>
-            <p class="eyebrow">Proof registry</p>
-            <h2>Proofs</h2>
-          </div>
-        </div>
-
-        <section class="panel pipeline-panel" id="proofs">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Selected escrow</p>
-              <h2>Proof Pipeline</h2>
-            </div>
-            <span class="mono" id="selectedDealId">No deal</span>
-          </div>
-          <div class="pipeline" id="pipeline"></div>
-          <div class="selected-actions" id="selectedActions"></div>
-        </section>
-
-        <section class="panel details-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Audit trail</p>
-              <h2>Deal Details</h2>
-            </div>
-          </div>
-          <div class="deal-details details-empty">Select an escrow to inspect condition hashes, transaction hashes, proofs, and events.</div>
-        </section>
       </section>
 
       <section class="page" id="page-adapter" data-page="adapter">

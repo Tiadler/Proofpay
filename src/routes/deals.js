@@ -6,6 +6,12 @@ import { githubPrVerifier } from '../verifiers/githubPrVerifier.js';
 
 export const dealsRouter = express.Router();
 
+function asyncRoute(handler) {
+  return (req, res, next) => {
+    Promise.resolve(handler(req, res, next)).catch(next);
+  };
+}
+
 function conditionHash(conditionType, conditionPayload) {
   return crypto.createHash('sha256').update(JSON.stringify({ conditionType, conditionPayload })).digest('hex');
 }
@@ -20,20 +26,20 @@ function requireDeal(state, id) {
   return deal;
 }
 
-dealsRouter.get('/', async (_req, res) => {
+dealsRouter.get('/', asyncRoute(async (_req, res) => {
   const state = await readStore();
   res.json(state.deals);
-});
+}));
 
-dealsRouter.get('/:id', async (req, res) => {
+dealsRouter.get('/:id', asyncRoute(async (req, res) => {
   const state = await readStore();
   const deal = requireDeal(state, req.params.id);
   const events = state.events.filter((event) => event.dealId === deal.id);
   const proofs = state.proofs.filter((proof) => proof.dealId === deal.id);
   res.json({ ...deal, events, proofs });
-});
+}));
 
-dealsRouter.post('/', async (req, res) => {
+dealsRouter.post('/', asyncRoute(async (req, res) => {
   const input = req.body;
   const now = new Date().toISOString();
   const deal = {
@@ -70,9 +76,9 @@ dealsRouter.post('/', async (req, res) => {
   });
   await appendEvent(deal.id, 'DEAL_CREATED', { title: deal.title, createEscrowTxHash: escrow.txHash });
   res.status(201).json(deal);
-});
+}));
 
-dealsRouter.post('/:id/fund', async (req, res) => {
+dealsRouter.post('/:id/fund', asyncRoute(async (req, res) => {
   const result = await updateStore(async (state) => {
     const deal = requireDeal(state, req.params.id);
     if (!['DRAFT', 'AWAITING_FUNDING'].includes(deal.status)) {
@@ -88,9 +94,9 @@ dealsRouter.post('/:id/fund', async (req, res) => {
   });
   await appendEvent(req.params.id, 'DEAL_FUNDED', result.tx);
   res.json(result);
-});
+}));
 
-dealsRouter.post('/:id/submit-proof', async (req, res) => {
+dealsRouter.post('/:id/submit-proof', asyncRoute(async (req, res) => {
   const proof = await updateStore((state) => {
     const deal = requireDeal(state, req.params.id);
     const proofRecord = {
@@ -113,12 +119,17 @@ dealsRouter.post('/:id/submit-proof', async (req, res) => {
   });
   await appendEvent(req.params.id, 'PROOF_SUBMITTED', { proofId: proof.id, proofUrl: proof.proofUrl });
   res.status(201).json(proof);
-});
+}));
 
-dealsRouter.post('/:id/verify/github', async (req, res) => {
+dealsRouter.post('/:id/verify/github', asyncRoute(async (req, res) => {
   const stateBefore = await readStore();
   const dealBefore = requireDeal(stateBefore, req.params.id);
-  const payload = { ...dealBefore.conditionPayload, ...(req.body || {}) };
+  if (!['FUNDED', 'AWAITING_PROOF'].includes(dealBefore.status)) {
+    const err = new Error(`Cannot verify deal in status ${dealBefore.status}`);
+    err.status = 409;
+    throw err;
+  }
+  const payload = dealBefore.conditionPayload || {};
   const verification = await githubPrVerifier.verify(payload);
 
   const result = await updateStore(async (state) => {
@@ -147,13 +158,18 @@ dealsRouter.post('/:id/verify/github', async (req, res) => {
   await appendEvent(req.params.id, 'GITHUB_PR_CHECKED', { ok: verification.ok, reason: verification.reason, proofHash: verification.proofHash });
   if (verification.ok) await appendEvent(req.params.id, 'CONDITION_VERIFIED', { proofHash: verification.proofHash });
   res.json(result);
-});
+}));
 
-dealsRouter.post('/:id/release', async (req, res) => {
+dealsRouter.post('/:id/release', asyncRoute(async (req, res) => {
   const result = await updateStore(async (state) => {
     const deal = requireDeal(state, req.params.id);
     if (!['VERIFIED'].includes(deal.status)) {
       const err = new Error(`Cannot release deal in status ${deal.status}. Verify proof first.`);
+      err.status = 409;
+      throw err;
+    }
+    if (!deal.fundingTxHash) {
+      const err = new Error('Cannot release an unfunded deal');
       err.status = 409;
       throw err;
     }
@@ -165,13 +181,13 @@ dealsRouter.post('/:id/release', async (req, res) => {
   });
   await appendEvent(req.params.id, 'PAYMENT_RELEASED', result.tx);
   res.json(result);
-});
+}));
 
-dealsRouter.post('/:id/refund', async (req, res) => {
+dealsRouter.post('/:id/refund', asyncRoute(async (req, res) => {
   const result = await updateStore(async (state) => {
     const deal = requireDeal(state, req.params.id);
-    if (deal.status === 'RELEASED') {
-      const err = new Error('Cannot refund a released deal');
+    if (!['FUNDED', 'AWAITING_PROOF', 'DISPUTED'].includes(deal.status)) {
+      const err = new Error(`Cannot refund deal in status ${deal.status}`);
       err.status = 409;
       throw err;
     }
@@ -183,9 +199,9 @@ dealsRouter.post('/:id/refund', async (req, res) => {
   });
   await appendEvent(req.params.id, 'REFUND_EXECUTED', result.tx);
   res.json(result);
-});
+}));
 
-dealsRouter.post('/:id/dispute', async (req, res) => {
+dealsRouter.post('/:id/dispute', asyncRoute(async (req, res) => {
   const result = await updateStore((state) => {
     const deal = requireDeal(state, req.params.id);
     if (['RELEASED', 'REFUNDED'].includes(deal.status)) {
@@ -200,4 +216,4 @@ dealsRouter.post('/:id/dispute', async (req, res) => {
   });
   await appendEvent(req.params.id, 'DISPUTE_OPENED', { reason: req.body?.reason || 'No reason provided' });
   res.json(result);
-});
+}));

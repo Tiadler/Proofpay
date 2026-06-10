@@ -11,7 +11,9 @@ const state = {
   theme: 'dark',
   wallet: null,
   profile: null,
-  githubStatus: null
+  githubStatus: null,
+  githubInstallations: [],
+  githubRepositories: []
 };
 
 let routeRefreshToken = 0;
@@ -20,9 +22,12 @@ const routes = {
   dashboard: 'ProofPay Console',
   escrows: 'Escrows',
   create: 'Create Deal',
-  proofs: 'Proofs',
   adapter: 'Adapter',
   profile: 'Profile / Settings'
+};
+
+const routeAliases = {
+  proofs: 'escrows'
 };
 
 const STORAGE_KEYS = {
@@ -31,7 +36,8 @@ const STORAGE_KEYS = {
   ledger: 'proofpay.ledger',
   profile: 'proofpay.profile',
   auditLog: 'proofpay.auditLog',
-  githubOauthResult: 'proofpay.github.oauthResult'
+  githubOauthResult: 'proofpay.github.oauthResult',
+  githubInstallationResult: 'proofpay.github.installationResult'
 };
 
 const walletMocks = {
@@ -271,6 +277,86 @@ function auditLogs() {
   return loadJson(STORAGE_KEYS.auditLog, []);
 }
 
+function repoDisplayName(repo) {
+  return repo?.fullName || [repo?.owner, repo?.name].filter(Boolean).join('/') || 'unknown repository';
+}
+
+function installedRepoKey(repo) {
+  if (!repo?.installationId || repo.id == null) return '';
+  return `${repo.installationId}:${repo.id}`;
+}
+
+function installedRepositories() {
+  const seen = new Set();
+  return (state.githubRepositories || [])
+    .filter((repo) => {
+      const key = installedRepoKey(repo);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => repoDisplayName(a).localeCompare(repoDisplayName(b)));
+}
+
+function findInstalledRepo(key) {
+  return installedRepositories().find((repo) => installedRepoKey(repo) === key) || null;
+}
+
+function mergeInstalledRepositories(repositories = []) {
+  const merged = new Map();
+  [...repositories, ...(state.githubRepositories || [])].forEach((repo) => {
+    const key = installedRepoKey(repo);
+    if (key) merged.set(key, repo);
+  });
+  state.githubRepositories = [...merged.values()];
+}
+
+function updateInstalledRepoHint(repo) {
+  const hint = $('#installedRepoHint');
+  if (!hint) return;
+
+  if (!repo) {
+    hint.textContent = 'For private repositories, the client must first grant GitHub access by inviting the worker or adding them to the right org/team, then install the ProofPay GitHub App on the repo.';
+    return;
+  }
+
+  hint.textContent = `${repoDisplayName(repo)} selected. The deal condition will include githubInstallationId ${repo.installationId}; ProofPay uses the GitHub App installation token to read PR metadata for verification.`;
+}
+
+function renderInstalledRepoSelect() {
+  const select = $('#installedRepoSelect');
+  if (!select) return;
+
+  const current = select.value;
+  const repos = installedRepositories();
+  select.innerHTML = [
+    '<option value="">Manual/public repository or not installed yet</option>',
+    ...repos.map((repo) => `
+      <option value="${escapeHtml(installedRepoKey(repo))}">
+        ${escapeHtml(repoDisplayName(repo))} | ${repo.private ? 'private' : 'public'} | installation ${escapeHtml(repo.installationId)}
+      </option>
+    `)
+  ].join('');
+
+  if (repos.some((repo) => installedRepoKey(repo) === current)) {
+    select.value = current;
+  }
+  updateInstalledRepoHint(findInstalledRepo(select.value));
+}
+
+function applyInstalledRepoSelection() {
+  const form = $('#dealForm');
+  const select = $('#installedRepoSelect');
+  if (!form || !select) return;
+
+  const repo = findInstalledRepo(select.value);
+  if (repo) {
+    form.elements.owner.value = repo.owner || '';
+    form.elements.repo.value = repo.name || '';
+  }
+  updateInstalledRepoHint(repo);
+}
+
 function renderPrograms() {
   $('#programs').innerHTML = programs.map((program) => `
     <article class="program-card">
@@ -368,25 +454,46 @@ function renderWallet() {
 
 function renderGithubProductionPanel() {
   const github = state.profile?.github;
+  const status = state.githubStatus || {};
+  const repos = installedRepositories();
+  const installationCount = state.githubInstallations?.length || 0;
+  const repoSummary = repos.length
+    ? repos.slice(0, 4).map((repo) => `<span class="mono">${escapeHtml(repoDisplayName(repo))}</span>`).join('')
+    : '<span>No installed repositories synced yet.</span>';
+
   $('#githubProductionPanel').innerHTML = `
     <div>
       Production verification for private repositories should use a GitHub App with scoped permissions. Raw private repo data stays off-chain; only proof metadata, verifier identity, condition hash, and proof hash move into the payment workflow.
     </div>
     <div class="wallet-card-grid">
       <div class="wallet-card">
-        <span class="eyebrow">GitHub App</span>
-        <strong>${github?.connected ? 'Installed (simulated)' : 'Not installed'}</strong>
+        <span class="eyebrow">GitHub App Backend</span>
+        <strong>${status.appConfigured ? 'Configured' : 'Missing app env'}</strong>
+      </div>
+      <div class="wallet-card">
+        <span class="eyebrow">Installations</span>
+        <strong>${installationCount} synced</strong>
+      </div>
+      <div class="wallet-card">
+        <span class="eyebrow">Repositories</span>
+        <strong>${repos.length} available</strong>
       </div>
       <div class="wallet-card">
         <span class="eyebrow">Verifier Identity</span>
-        <strong>${github?.connected ? 'proofpay-github-app/v1' : 'Pending'}</strong>
+        <strong>${repos.length ? 'proofpay-github-app/v1' : github?.connected ? 'mock-github-session' : 'Pending'}</strong>
       </div>
       <div class="wallet-card">
         <span class="eyebrow">Permission Scope</span>
-        <strong>${github?.connected ? 'Pull Requests: Read | Checks: Read' : 'None'}</strong>
+        <strong>${repos.length ? 'Pull Requests: Read | Contents: Metadata' : 'None yet'}</strong>
+      </div>
+      <div class="wallet-card">
+        <span class="eyebrow">Private Repo Path</span>
+        <strong>${repos.some((repo) => repo.private) ? 'Ready' : 'Install app first'}</strong>
       </div>
     </div>
+    <div class="repo-list">${repoSummary}</div>
     <div class="profile-actions">
+      ${status.installUrl ? '<a class="button primary" href="/api/github/install">Install / Sync GitHub App</a>' : ''}
       <button class="button ghost" id="openProfileFromAdapter" type="button">${github?.connected ? 'View Connected GitHub' : 'Connect GitHub in Profile'}</button>
     </div>
   `;
@@ -397,6 +504,8 @@ function renderProfilePage() {
   const wallet = state.wallet;
   const github = profile?.github;
   const status = state.githubStatus;
+  const repos = installedRepositories();
+  const installationCount = state.githubInstallations?.length || 0;
   const balance = wallet ? currentLedgerBalance(wallet.address).toFixed(2) : '0.00';
 
   $('#profileDetailsPanel').innerHTML = profile && wallet ? `
@@ -424,22 +533,29 @@ function renderProfilePage() {
 
   $('#profileGithubPanel').innerHTML = `
     <div class="profile-block">
-      <strong>${github?.connected ? `Connected as ${escapeHtml(github.username)}` : 'GitHub not connected'}</strong>
-      <span>${github?.connected ? 'Private repo verification can be simulated for this profile.' : 'Connect GitHub to prepare private repository proof verification.'}</span>
+      <strong>${github?.connected ? `Connected as ${escapeHtml(github.username)}` : repos.length ? 'GitHub App installed' : 'GitHub not connected'}</strong>
+      <span>${github?.connected ? 'OAuth/mock identity is connected for the profile.' : 'OAuth is optional for demo identity; GitHub App installation is required for private repo verification.'}</span>
     </div>
     <div class="profile-block">
       <strong>GitHub App Status</strong>
-      <span>${status?.configured ? 'OAuth configured on backend' : 'OAuth not configured. Mock connection is available for demo.'}</span>
-      <span>${status?.installUrl ? `Install URL: ${status.installUrl}` : 'Set GITHUB_APP_SLUG to generate an install URL.'}</span>
+      <span>${status?.appConfigured ? 'App keys configured on backend' : 'Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY_BASE64 to use private repo verification.'}</span>
+      <span>${status?.installUrl ? `Setup callback: ${status.setupCallbackUrl}` : 'Set GITHUB_APP_SLUG to generate an install route.'}</span>
+    </div>
+    <div class="profile-block">
+      <strong>Installed Repositories</strong>
+      <span>${installationCount} installation(s), ${repos.length} repository record(s)</span>
+      ${repos.length ? `<div class="repo-list">${repos.slice(0, 8).map((repo) => `
+        <span class="mono">${escapeHtml(repoDisplayName(repo))} | ${repo.private ? 'private' : 'public'} | installation ${escapeHtml(repo.installationId)}</span>
+      `).join('')}</div>` : '<span>No installed repositories synced yet. Install the GitHub App after the client grants repo access.</span>'}
     </div>
     <div class="profile-block">
       <strong>Permissions</strong>
-      <span>${github?.permissions?.join(', ') || 'pull_requests:read, checks:read, contents:metadata'}</span>
+      <span>${github?.permissions?.join(', ') || 'pull_requests:read, contents:metadata'}</span>
     </div>
     <div class="profile-actions">
       <button class="button ghost" id="connectGithubButton" type="button">${github?.connected ? 'Reconnect GitHub' : 'Connect GitHub'}</button>
       ${status?.oauthUrl ? `<a class="button primary" href="${status.oauthUrl}">GitHub OAuth</a>` : ''}
-      ${status?.installUrl ? `<a class="button ghost" href="${status.installUrl}" target="_blank" rel="noreferrer">Install GitHub App</a>` : ''}
+      ${status?.installUrl ? '<a class="button primary" href="/api/github/install">Install / Sync GitHub App</a>' : ''}
     </div>
   `;
 
@@ -483,6 +599,7 @@ function renderProfileMenu() {
   const profile = state.profile;
   const wallet = state.wallet;
   const github = profile?.github;
+  const repos = installedRepositories();
   const container = $('#profilePanelContent');
 
   if (!profile || !wallet) {
@@ -508,11 +625,12 @@ function renderProfileMenu() {
     </div>
     <div class="profile-block">
       <strong>GitHub</strong>
-      <span>${github?.connected ? `Connected as ${github.username}` : 'Not connected yet'}</span>
-      <span>${github?.connected ? 'GitHub App install and OAuth are simulated for private-repo verification narrative.' : 'Connect GitHub to unlock private-repo verification flow.'}</span>
+      <span>${github?.connected ? `Connected as ${github.username}` : 'OAuth/mock identity not connected'}</span>
+      <span>${repos.length ? `GitHub App synced on ${repos.length} repository record(s).` : 'Install GitHub App to use private-repo PR verification.'}</span>
     </div>
     <div class="profile-actions">
       <button class="button ghost" id="connectGithubButton" type="button">${github?.connected ? 'Reconnect GitHub' : 'Connect GitHub'}</button>
+      ${state.githubStatus?.installUrl ? '<a class="button ghost" href="/api/github/install">Install GitHub App</a>' : ''}
       <button class="button danger" id="logoutProfileButton" type="button">Logout</button>
     </div>
   `;
@@ -687,22 +805,23 @@ function canFund(deal) {
 }
 
 function canVerify(deal) {
-  return !['RELEASED', 'REFUNDED', 'DISPUTED'].includes(deal.status);
+  return ['FUNDED', 'AWAITING_PROOF'].includes(deal.status);
 }
 
 function canRelease(deal) {
-  return deal.status === 'VERIFIED';
+  return deal.status === 'VERIFIED' && Boolean(deal.fundingTxHash);
 }
 
 function canRefund(deal) {
-  return deal.status !== 'RELEASED' && deal.status !== 'REFUNDED';
+  return ['FUNDED', 'AWAITING_PROOF', 'DISPUTED'].includes(deal.status);
 }
 
 function conditionLabel(deal) {
   const payload = deal.conditionPayload || {};
   const repo = [payload.owner, payload.repo].filter(Boolean).join('/');
   const pr = payload.pullNumber ? `#${payload.pullNumber}` : 'PR missing';
-  return repo ? `${repo} ${pr}` : 'GitHub PR condition';
+  const source = payload.githubInstallationId ? 'GitHub App' : 'public/API';
+  return repo ? `${repo} ${pr} | ${source}` : 'GitHub PR condition';
 }
 
 function renderDeals() {
@@ -763,6 +882,16 @@ function renderDetails() {
     ['Release Tx', deal.releaseTxHash || 'pending'],
     ['Refund Tx', deal.refundTxHash || 'pending']
   ];
+  const payload = deal.conditionPayload || {};
+  if (payload.owner || payload.repo || payload.pullNumber) {
+    detailRows.splice(4, 0,
+      ['GitHub PR', `${[payload.owner, payload.repo].filter(Boolean).join('/') || 'repo missing'} #${payload.pullNumber || 'missing'}`],
+      ['Expected Author', payload.expectedAuthor || 'not locked'],
+      ['Repository Visibility', payload.visibility || (payload.githubInstallationId ? 'private/app' : 'public/manual')],
+      ['GitHub Installation', payload.githubInstallationId || 'not used'],
+      ['Repository ID', payload.repoId || 'not stored']
+    );
+  }
   const record = escrowRecord(deal.id);
   if (record) detailRows.splice(4, 0, ['Locked RIALO', String(record.lockedAmount)]);
 
@@ -790,6 +919,7 @@ function renderDetails() {
             <span class="status-badge ${proof.verificationStatus}">${escapeHtml(proof.verificationStatus)}</span>
           </header>
           <p>${escapeHtml(proof.verifierReason || 'No verifier reason')}</p>
+          ${proof.payload?.githubInstallationId || proof.verifierMetadata?.githubInstallationId ? `<p class="mono">installation ${escapeHtml(proof.payload?.githubInstallationId || proof.verifierMetadata?.githubInstallationId)}</p>` : ''}
           <p class="mono">${escapeHtml(proof.proofHash || 'no proof hash')}</p>
         </div>
       `).join('') : '<div class="details-empty">No proof records yet.</div>'}
@@ -822,18 +952,22 @@ function renderAll() {
   renderDetails();
   renderProfileMenu();
   renderProfilePage();
+  renderInstalledRepoSelect();
   renderRoute();
 }
 
 async function loadSystem() {
-  const [network, summary, githubStatus] = await Promise.all([
+  const [network, summary, githubStatus, githubInstallations] = await Promise.all([
     api('/api/system/rialo'),
     api('/api/system/summary'),
-    api('/api/github/status')
+    api('/api/github/status'),
+    api('/api/github/installations')
   ]);
   state.network = network;
   state.summary = summary;
   state.githubStatus = githubStatus;
+  state.githubInstallations = githubInstallations.installations || [];
+  state.githubRepositories = githubInstallations.repositories || [];
 }
 
 async function loadDeals({ preserveSelection = true } = {}) {
@@ -1003,6 +1137,44 @@ function applyGithubOauthResult() {
   }
 }
 
+function applyGithubInstallationResult() {
+  const raw = sessionStorage.getItem(STORAGE_KEYS.githubInstallationResult);
+  if (!raw) return;
+  try {
+    const result = JSON.parse(raw);
+    const repositories = (result.repositories || []).map((repo) => ({
+      ...repo,
+      installationId: result.installationId
+    }));
+    mergeInstalledRepositories(repositories);
+
+    if (state.profile) {
+      state.profile = {
+        ...state.profile,
+        github: {
+          ...(state.profile.github || {}),
+          connected: true,
+          username: state.profile.github?.username || 'github-app-installation',
+          installation: 'github-app',
+          installationId: result.installationId,
+          repositories: repositories.map(repoDisplayName),
+          permissions: ['pull_requests:read', 'contents:metadata'],
+          verifier: 'proofpay-github-app/v1'
+        }
+      };
+      saveJson(STORAGE_KEYS.profile, state.profile);
+    }
+
+    addAudit('github.app.install', `GitHub App synced installation ${result.installationId}`, {
+      installationId: result.installationId,
+      repositories: repositories.map(repoDisplayName),
+      setupAction: result.setupAction
+    });
+  } finally {
+    sessionStorage.removeItem(STORAGE_KEYS.githubInstallationResult);
+  }
+}
+
 function enforceDeployBalance(payload) {
   if (!state.wallet) throw new Error('Connect a wallet before deploying an escrow workflow');
   if (payload.payerAddress !== state.wallet.address) {
@@ -1121,6 +1293,10 @@ function bindEvents() {
   $('#statusFilter').addEventListener('change', () => {
     renderDeals();
   });
+  $('#installedRepoSelect').addEventListener('change', () => {
+    applyInstalledRepoSelection();
+    renderAll();
+  });
   $('#resetForm').addEventListener('click', resetForm);
   $('#openWalletModal').addEventListener('click', openWalletModal);
   $('#openProfileMenu').addEventListener('click', openProfileMenu);
@@ -1141,6 +1317,12 @@ function bindEvents() {
     const form = new FormData(event.currentTarget);
     const deadlineRaw = form.get('deadline');
     const pullNumber = Number(form.get('pullNumber'));
+    const selectedRepo = findInstalledRepo(String(form.get('installedRepo') || ''));
+    const owner = String(form.get('owner') || selectedRepo?.owner || '').trim();
+    const repo = String(form.get('repo') || selectedRepo?.name || '').trim();
+    const githubInstallationId = selectedRepo?.installationId || '';
+    const repositoryId = selectedRepo?.id || '';
+    const visibility = selectedRepo ? (selectedRepo.private ? 'private' : 'public') : 'manual';
 
     const payload = {
       title: form.get('title'),
@@ -1152,11 +1334,14 @@ function bindEvents() {
       conditionType: 'github_pr_merged',
       deadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null,
       conditionPayload: {
-        owner: String(form.get('owner') || '').trim(),
-        repo: String(form.get('repo') || '').trim(),
+        owner,
+        repo,
         pullNumber: Number.isFinite(pullNumber) ? pullNumber : 0,
         expectedAuthor: String(form.get('expectedAuthor') || '').trim() || undefined,
-        deadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null
+        deadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null,
+        visibility,
+        repoId: repositoryId || undefined,
+        githubInstallationId: githubInstallationId || undefined
       }
     };
 
@@ -1263,16 +1448,18 @@ function syncSidebarControls() {
 
 function routeFromHash() {
   const route = window.location.hash.replace(/^#\/?/, '') || 'dashboard';
-  return routes[route] ? route : 'dashboard';
+  const resolved = routeAliases[route] || route;
+  return routes[resolved] ? resolved : 'dashboard';
 }
 
 function navigateTo(route) {
-  if (!routes[route]) return;
-  if (window.location.hash !== `#/${route}`) {
-    window.location.hash = `/${route}`;
+  const resolved = routeAliases[route] || route;
+  if (!routes[resolved]) return;
+  if (window.location.hash !== `#/${resolved}`) {
+    window.location.hash = `/${resolved}`;
     return;
   }
-  state.route = route;
+  state.route = resolved;
   renderRoute();
   refreshRouteData();
 }
@@ -1312,6 +1499,7 @@ async function init() {
   state.wallet = loadJson(STORAGE_KEYS.wallet, null);
   state.profile = loadJson(STORAGE_KEYS.profile, null);
   applyGithubOauthResult();
+  applyGithubInstallationResult();
   bindEvents();
   syncSidebarControls();
   resetForm();
